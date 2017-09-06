@@ -76,9 +76,6 @@ public class Client {
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA1");
         secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 1024, 128));
         Log.d("KEY", secretKey.getEncoded());
-
-//        dataInputStream.close();
-//        dataOutputStream.close();
     }
 
     public void close() throws Exception {

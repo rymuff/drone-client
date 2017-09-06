@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="drone-cert">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/drone-cert/out/artifacts/drone_cert_jar/drone-cert.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
