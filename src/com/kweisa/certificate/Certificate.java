@@ -1,5 +1,7 @@
 package com.kweisa.certificate;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.security.KeyFactory;
@@ -56,8 +58,8 @@ public class Certificate {
 
         putBytes(certificateBytes);
 
-        PublicKey publicKey = KeyFactory.getInstance("EC").generatePublic(new X509EncodedKeySpec(this.publicKey));
-        PrivateKey privateKey = KeyFactory.getInstance("EC").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+        PublicKey publicKey = KeyFactory.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(this.publicKey));
+        PrivateKey privateKey = KeyFactory.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME).generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
 
         this.keyPair = new KeyPair(publicKey, privateKey);
     }
@@ -150,7 +152,11 @@ public class Certificate {
     }
 
     public PublicKey getPublicKey() throws Exception {
-        return KeyFactory.getInstance("EC").generatePublic(new X509EncodedKeySpec(publicKey));
+        return KeyFactory.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(publicKey));
+    }
+
+    public PrivateKey getPrivateKey() {
+        return keyPair.getPrivate();
     }
 
     public byte[] getSignature() {

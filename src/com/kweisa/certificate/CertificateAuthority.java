@@ -14,7 +14,7 @@ public class CertificateAuthority {
     private final String CURVE_NAME = "secp256r1";
 
     public CertificateAuthority() throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
         keyPairGenerator.initialize(new ECGenParameterSpec(CURVE_NAME));
         keyPair = keyPairGenerator.generateKeyPair();
     }
@@ -32,8 +32,8 @@ public class CertificateAuthority {
         fileInputStream.read(privateKeyBytes);
         fileInputStream.close();
 
-        PublicKey publicKey = KeyFactory.getInstance("EC").generatePublic(new X509EncodedKeySpec(publicKeyBytes));
-        PrivateKey privateKey = KeyFactory.getInstance("EC").generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+        PublicKey publicKey = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME).generatePublic(new X509EncodedKeySpec(publicKeyBytes));
+        PrivateKey privateKey = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME).generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
 
         return new CertificateAuthority(new KeyPair(publicKey, privateKey));
     }
@@ -46,7 +46,7 @@ public class CertificateAuthority {
     }
 
     public Certificate generateEncodedCertificate(byte[] version, byte[] issuer, long notBefore, long notAfter, byte[] subject) throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", BouncyCastleProvider.PROVIDER_NAME);
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
         keyPairGenerator.initialize(new ECGenParameterSpec(CURVE_NAME));
         KeyPair certKeyPair = keyPairGenerator.generateKeyPair();
 
@@ -57,7 +57,7 @@ public class CertificateAuthority {
         dataOutputStream.writeLong(notBefore);
         dataOutputStream.writeLong(notAfter);
         dataOutputStream.write(subject, 0, 4);
-        dataOutputStream.write(certKeyPair.getPublic().getEncoded());
+        dataOutputStream.write(certKeyPair.getPublic().getEncoded(),0,91);
 
         Signature signature = Signature.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
         signature.initSign(keyPair.getPrivate());
@@ -65,7 +65,7 @@ public class CertificateAuthority {
         dataOutputStream.write(signature.sign());
 
         dataOutputStream.close();
-        return new Certificate(byteArrayOutputStream.toByteArray(), keyPair);
+        return new Certificate(byteArrayOutputStream.toByteArray(), certKeyPair);
     }
 
     public boolean verifyCertificate(Certificate certificate) throws Exception {
