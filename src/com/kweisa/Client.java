@@ -21,7 +21,6 @@ public class Client {
     public Client(String serverAddress, int port) {
         this.serverAddress = serverAddress;
         this.port = port;
-
     }
 
     public void load(String certificateFileName, String privateKeyFileName) throws Exception {
