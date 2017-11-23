@@ -49,6 +49,7 @@ public class Client {
         dataInputStream.read(randomNumberServer);
         Log.d("<-RNs", randomNumberServer);
 
+        dataOutputStream.writeInt(certificate.getEncoded().length);
         dataOutputStream.write(certificate.getEncoded());
         Log.d("CERTc->", certificate.getEncoded());
 
