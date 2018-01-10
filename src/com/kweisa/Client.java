@@ -117,7 +117,7 @@ public class Client {
         client.load("client.cert", "client.key");
         client.handshake();
 
-        client.send("Hello".getBytes());
+//        client.send("Hello".getBytes());
 
         client.close();
     }
