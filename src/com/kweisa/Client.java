@@ -94,7 +94,6 @@ public class Client {
 
         dataOutputStream.write(hmac);
         dataOutputStream.write(message);
-
         dataOutputStream.close();
     }
 
