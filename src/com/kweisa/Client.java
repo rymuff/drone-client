@@ -116,9 +116,6 @@ public class Client {
         Client client = new Client("127.0.0.1", 10002);
         client.load("client.cert", "client.key");
         client.handshake();
-
-//        client.send("Hello".getBytes());
-
         client.close();
     }
 }

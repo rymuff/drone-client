@@ -1,9 +1,11 @@
 <component name="ArtifactManager">
-  <artifact type="jar" name="drone-client:jar">
+  <artifact name="drone-client:jar">
     <output-path>$PROJECT_DIR$/out/artifacts/drone_client_jar</output-path>
-    <root id="archive" name="drone-client.jar">
-      <element id="module-output" name="drone-client" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/bcprov-jdk15on-1.58.jar" path-in-jar="/" />
+    <root id="root">
+      <element id="archive" name="drone-client.jar">
+        <element id="module-output" name="drone-client" />
+      </element>
+      <element id="library" level="project" name="org.bouncycastle:bcprov-jdk15on:1.58" />
       <element id="library" level="project" name="drone-cert" />
     </root>
   </artifact>
