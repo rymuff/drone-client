@@ -77,6 +77,9 @@ public class Client {
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA1");
         secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 1024, 128));
         Log.d("KEY", secretKey.getEncoded());
+
+        dataInputStream.close();
+        dataOutputStream.close();
     }
 
     public void close() throws Exception {
@@ -111,8 +114,10 @@ public class Client {
 
     public static void main(String[] args) throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-
-        Client client = new Client("127.0.0.1", 10002);
+        for (String arg : args) {
+            System.out.println(arg);
+        }
+        Client client = new Client(args[0], Integer.parseInt(args[1]));
         client.load("client.cert", "client.key");
         client.handshake();
         client.close();
