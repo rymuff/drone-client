@@ -77,8 +77,8 @@ public class Client {
         System.arraycopy(randomNumberServer, 0, salt, randomNumberClient.length, randomNumberServer.length);
 
         Log.d("SALT", salt);
-        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA1");
-        secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 1024, 128));
+        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
+        secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 10000, 256));
         Log.d("KEY", secretKey.getEncoded());
 
         dataInputStream.close();
@@ -122,8 +122,8 @@ public class Client {
         System.arraycopy(randomNumberServer, 0, salt, randomNumberClient.length, randomNumberServer.length);
 
         Log.d("SALT", salt);
-        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA1");
-        secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 1024, 128));
+        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
+        secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 10000, 256));
         Log.d("KEY", secretKey.getEncoded());
 
         dataInputStream.close();
@@ -170,7 +170,7 @@ public class Client {
         Client client = new Client("115.145.171.29", 7749);
         client.load("client.cert", "client.key");
 
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 101; i++) {
             client.conventionalHandshake();
 //            client.handshake();
         }
