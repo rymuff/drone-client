@@ -136,10 +136,12 @@ public class Client {
 
         Client client = new Client("115.145.171.29", 80);
         client.load("client.cert", "client.key");
-        client.handshake();
 
+
+        byte[] bytes = client.generateRandomNumber(40);
         for (int i = 0; i < 102; i++) {
-            client.send("Hello, World!".getBytes());
+//            client.send(bytes);
+            client.handshake();
 //            client.sendWithCert("Hello, World!".getBytes());
         }
         client.close();
