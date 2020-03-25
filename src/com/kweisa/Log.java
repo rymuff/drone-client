@@ -11,4 +11,8 @@ public class Log {
     public static void d(String tag, byte[] message) {
         System.out.println(tag + ": " + Hex.toHexString(message));
     }
+
+    public static void d(String tag, int size, byte[] message) {
+        System.out.println(tag + " [" + size + "] " + ": " + Hex.toHexString(message));
+    }
 }

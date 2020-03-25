@@ -10,13 +10,13 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.net.Socket;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.Security;
+import java.security.*;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-
+import java.security.spec.PKCS8EncodedKeySpec;
 
 public class Client {
     private String serverAddress;
@@ -67,6 +67,57 @@ public class Client {
 
         Cipher cipher = Cipher.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
         cipher.init(Cipher.DECRYPT_MODE, clientCertificate.getPrivateKey());
+        byte[] preMasterSecret = cipher.doFinal(cipherText);
+
+        byte[] salt = new byte[randomNumberClient.length + randomNumberServer.length];
+        System.arraycopy(randomNumberClient, 0, salt, 0, randomNumberClient.length);
+        System.arraycopy(randomNumberServer, 0, salt, randomNumberClient.length, randomNumberServer.length);
+
+        Log.d("SALT", salt);
+        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
+        secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 10000, 256));
+        secretKey = new SecretKeySpec(secretKey.getEncoded(), "AES");
+        Log.d("KEY", secretKey.getEncoded());
+
+        dataInputStream.close();
+        dataOutputStream.close();
+    }
+
+    public void conventionalHandshake() throws Exception {
+        socket = new Socket(serverAddress, port);
+
+        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+        DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+
+        byte[] randomNumberClient = generateRandomNumber(4);
+        dataOutputStream.write(randomNumberClient);
+        Log.d("RNc->", randomNumberClient);
+
+        byte[] randomNumberServer = new byte[4];
+        dataInputStream.read(randomNumberServer);
+        Log.d("<-RNs", randomNumberServer);
+
+        X509Certificate clientCertificate = ConventionalCertificate.readCertificate("covclient.dem");
+        dataOutputStream.write(clientCertificate.getEncoded());
+        Log.d("CERTc->", clientCertificate.getEncoded());
+
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        X509Certificate serverCertificate = (X509Certificate) certificateFactory.generateCertificate(dataInputStream);
+        Log.d("<-CERTs", serverCertificate.toString());
+
+        byte[] cipherText = new byte[93];
+        dataInputStream.read(cipherText);
+        Log.d("<-E(PMS)", cipherText);
+
+        byte[] privateKeyBytes = new byte[150];
+        FileInputStream fileInputStream = new FileInputStream(new File("covclient.key"));
+        fileInputStream.read(privateKeyBytes);
+        fileInputStream.close();
+
+        PrivateKey privateKey = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME).generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
+
+        Cipher cipher = Cipher.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
         byte[] preMasterSecret = cipher.doFinal(cipherText);
 
         byte[] salt = new byte[randomNumberClient.length + randomNumberServer.length];
@@ -141,7 +192,8 @@ public class Client {
         byte[] bytes = client.generateRandomNumber(40);
         for (int i = 0; i < 102; i++) {
 //            client.send(bytes);
-            client.handshake();
+//            client.handshake();
+            client.conventionalHandshake();
 //            client.sendWithCert("Hello, World!".getBytes());
         }
         client.close();
