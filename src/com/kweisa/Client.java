@@ -97,7 +97,7 @@ public class Client {
         dataInputStream.read(randomNumberServer);
         Log.d("<-RNs", randomNumberServer);
 
-        X509Certificate clientCertificate = ConventionalCertificate.readCertificate("covclient.dem");
+        X509Certificate clientCertificate = ConventionalCertificate.readCertificate("c_client.dem");
         dataOutputStream.write(clientCertificate.getEncoded());
         Log.d("CERTc->", clientCertificate.getEncoded());
 
@@ -109,13 +109,7 @@ public class Client {
         dataInputStream.read(cipherText);
         Log.d("<-E(PMS)", cipherText);
 
-        byte[] privateKeyBytes = new byte[150];
-        FileInputStream fileInputStream = new FileInputStream(new File("covclient.key"));
-        fileInputStream.read(privateKeyBytes);
-        fileInputStream.close();
-
-        PrivateKey privateKey = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME).generatePrivate(new PKCS8EncodedKeySpec(privateKeyBytes));
-
+        PrivateKey privateKey = ConventionalCertificate.readKey("c_client.key");
         Cipher cipher = Cipher.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         byte[] preMasterSecret = cipher.doFinal(cipherText);
