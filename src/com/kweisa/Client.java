@@ -1,6 +1,7 @@
 package com.kweisa;
 
 import com.kweisa.certificate.Certificate;
+import com.kweisa.certificate.ConventionalCertificate;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
@@ -14,6 +15,8 @@ import java.net.Socket;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 
 public class Client {
@@ -82,6 +85,52 @@ public class Client {
         dataOutputStream.close();
     }
 
+    public void conventionalHandshake() throws Exception {
+        socket = new Socket(serverAddress, port);
+
+        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+        DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+
+        byte[] randomNumberClient = generateRandomNumber(4);
+        dataOutputStream.write(randomNumberClient);
+        Log.d("RNc->", randomNumberClient);
+
+        byte[] randomNumberServer = new byte[4];
+        dataInputStream.read(randomNumberServer);
+        Log.d("<-RNs", randomNumberServer);
+
+        X509Certificate clientCertificate = ConventionalCertificate.readCertificate("covclient.dem");
+        dataOutputStream.write(clientCertificate.getEncoded());
+        Log.d("CERTc->", clientCertificate.getEncoded());
+
+        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+        X509Certificate serverCertificate = (X509Certificate) certificateFactory.generateCertificate(dataInputStream);
+        Log.d("<-CERTs", serverCertificate.toString());
+
+        byte[] preMasterSecret = generateRandomNumber(8);
+        Log.d("PMS", preMasterSecret);
+
+        Cipher cipher = Cipher.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
+        cipher.init(Cipher.ENCRYPT_MODE, serverCertificate.getPublicKey());
+        byte[] cipherText = cipher.doFinal(preMasterSecret);
+        dataOutputStream.write(cipherText);
+
+        Log.d("PMS->", cipherText);
+
+        byte[] salt = new byte[randomNumberClient.length + randomNumberServer.length];
+        System.arraycopy(randomNumberClient, 0, salt, 0, randomNumberClient.length);
+        System.arraycopy(randomNumberServer, 0, salt, randomNumberClient.length, randomNumberServer.length);
+
+        Log.d("SALT", salt);
+        SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA1");
+        secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 1024, 128));
+        Log.d("KEY", secretKey.getEncoded());
+
+        dataInputStream.close();
+        dataOutputStream.close();
+    }
+
+
     public void close() throws Exception {
         socket.close();
     }
@@ -117,9 +166,14 @@ public class Client {
         for (String arg : args) {
             System.out.println(arg);
         }
-        Client client = new Client(args[0], Integer.parseInt(args[1]));
+
+        Client client = new Client("115.145.171.29", 7749);
         client.load("client.cert", "client.key");
-        client.handshake();
+
+        for (int i = 0; i < 100; i++) {
+            client.conventionalHandshake();
+//            client.handshake();
+        }
         client.close();
     }
 }
