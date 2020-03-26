@@ -5,6 +5,7 @@ import com.kweisa.certificate.ConventionalCertificate;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.GCMParameterSpec;
@@ -76,7 +77,7 @@ public class Client {
         Log.d("SALT", salt);
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
         secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 10000, 256));
-        secretKey = new SecretKeySpec(secretKey.getEncoded(), "AES");
+        secretKey = new SecretKeySpec(secretKey.getEncoded(), "HmacSHA256");
         Log.d("KEY", secretKey.getEncoded());
 
         dataInputStream.close();
@@ -121,7 +122,7 @@ public class Client {
         Log.d("SALT", salt);
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
         secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 10000, 256));
-        secretKey = new SecretKeySpec(secretKey.getEncoded(), "AES");
+        secretKey = new SecretKeySpec(secretKey.getEncoded(), "HmacSHA256");
         Log.d("KEY", secretKey.getEncoded());
 
         dataInputStream.close();
@@ -155,21 +156,16 @@ public class Client {
         socket = new Socket(serverAddress, port);
         DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
 
-        byte[] nonce = generateRandomNumber(32);
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(secretKey);
+        byte[] hash = mac.doFinal(message);
 
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        GCMParameterSpec spec = new GCMParameterSpec(16 * 8, nonce);
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
+        byte[] data = new byte[hash.length + message.length];
+        System.arraycopy(hash, 0, data, 0, hash.length);
+        System.arraycopy(message, 0, data, hash.length, message.length);
 
-        byte[] byteCipher = cipher.doFinal(message);
-
-        byte[] data = new byte[nonce.length + byteCipher.length];
-        System.arraycopy(nonce, 0, data, 0, nonce.length);
-        System.arraycopy(byteCipher, 0, data, nonce.length, byteCipher.length);
-
-        Log.d("Message", message);
-        Log.d("nonce->", nonce);
-        Log.d("cipher->", byteCipher);
+        Log.d("hash->", hash);
+        Log.d("message->", message);
 
         dataOutputStream.write(data);
         dataOutputStream.close();
