@@ -54,14 +54,13 @@ public class Client {
         dataInputStream.read(randomNumberServer);
         Log.d("<-RNs", randomNumberServer);
 
-        dataOutputStream.writeInt(clientCertificate.getEncoded().length);
         dataOutputStream.write(clientCertificate.getEncoded());
         Log.d("CERTc->", clientCertificate.getEncoded());
 
-        byte[] certificateBytes = new byte[184];
-        dataInputStream.read(certificateBytes);
-        Log.d("<-CERTs", certificateBytes);
-        serverCertificate = new Certificate(certificateBytes);
+//        byte[] certificateBytes = new byte[184];
+//        dataInputStream.read(certificateBytes);
+//        Log.d("<-CERTs", certificateBytes);
+//        serverCertificate = new Certificate(certificateBytes);
 
         byte[] cipherText = new byte[93];
         dataInputStream.read(cipherText);
@@ -103,9 +102,9 @@ public class Client {
         dataOutputStream.write(clientCertificate.getEncoded());
         Log.d("CERTc->", clientCertificate.getEncoded());
 
-        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-        X509Certificate serverCertificate = (X509Certificate) certificateFactory.generateCertificate(dataInputStream);
-        Log.d("<-CERTs", serverCertificate.toString());
+//        CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+//        X509Certificate serverCertificate = (X509Certificate) certificateFactory.generateCertificate(dataInputStream);
+//        Log.d("<-CERTs", serverCertificate.toString());
 
         byte[] cipherText = new byte[93];
         dataInputStream.read(cipherText);
@@ -125,6 +124,25 @@ public class Client {
         secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), salt, 10000, 256));
         secretKey = new SecretKeySpec(secretKey.getEncoded(), "AES");
         Log.d("KEY", secretKey.getEncoded());
+
+        dataInputStream.close();
+        dataOutputStream.close();
+    }
+
+    public void handshakeOnlyCert() throws Exception {
+        socket = new Socket(serverAddress, port);
+
+        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+        DataOutputStream dataOutputStream = new DataOutputStream(socket.getOutputStream());
+
+        dataOutputStream.writeInt(clientCertificate.getEncoded().length);
+        dataOutputStream.write(clientCertificate.getEncoded());
+        Log.d("CERTc->", clientCertificate.getEncoded());
+
+        byte[] certificateBytes = new byte[184];
+        dataInputStream.read(certificateBytes);
+        Log.d("<-CERTs", certificateBytes);
+        serverCertificate = new Certificate(certificateBytes);
 
         dataInputStream.close();
         dataOutputStream.close();
