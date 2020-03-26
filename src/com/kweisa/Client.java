@@ -163,12 +163,15 @@ public class Client {
 
         byte[] byteCipher = cipher.doFinal(message);
 
+        byte[] data = new byte[nonce.length + byteCipher.length];
+        System.arraycopy(nonce, 0, data, 0, nonce.length);
+        System.arraycopy(byteCipher, 0, data, nonce.length, byteCipher.length);
+
         Log.d("Message", message);
         Log.d("nonce->", nonce);
         Log.d("cipher->", byteCipher);
 
-        dataOutputStream.write(nonce);
-        dataOutputStream.write(byteCipher);
+        dataOutputStream.write(data);
         dataOutputStream.close();
     }
 
@@ -201,14 +204,14 @@ public class Client {
         Client client = new Client("115.145.171.29", 80);
         client.load("client.cert", "client.key");
 
-//        client.handshake();
-        client.handshakeOnlyCert();
+        client.handshake();
+//        client.handshakeOnlyCert();
         byte[] bytes = client.generateRandomNumber(40);
         for (int i = 0; i < 102; i++) {
-//            client.send(bytes);
+            client.send(bytes);
 
 //            client.conventionalHandshake();
-            client.sendWithCert(bytes);
+//            client.sendWithCert(bytes);
         }
         client.close();
     }
