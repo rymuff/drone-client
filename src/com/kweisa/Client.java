@@ -17,7 +17,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Security;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 public class Client {
@@ -202,13 +201,14 @@ public class Client {
         Client client = new Client("115.145.171.29", 80);
         client.load("client.cert", "client.key");
 
-
+//        client.handshake();
+        client.handshakeOnlyCert();
         byte[] bytes = client.generateRandomNumber(40);
         for (int i = 0; i < 102; i++) {
 //            client.send(bytes);
-//            client.handshake();
-            client.conventionalHandshake();
-//            client.sendWithCert("Hello, World!".getBytes());
+
+//            client.conventionalHandshake();
+            client.sendWithCert(bytes);
         }
         client.close();
     }
