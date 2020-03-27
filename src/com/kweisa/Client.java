@@ -255,7 +255,8 @@ public class Client {
 
         client.handshake();
 
-        for (int i = 0; i < 102; i++) {
+        for (int i = 0; i < 200; i++) {
+//            client.handshake();
 //            client.handshakeOld();
 //            client.authenticate();
             client.authenticateOld();
