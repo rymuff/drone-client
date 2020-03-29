@@ -264,16 +264,16 @@ public class Client {
         client.connect();
 
 //        client.handshake();
-        client.handshakeOld();
+//        client.handshakeOld();
 //            client.authenticate();
 //        client.authenticateOld();
 
-//        for (int i = 0; i < 200; i++) {
-////            client.handshake();
-////            client.handshakeOld();
-////            client.authenticate();
-////            client.authenticateOld();
-//        }
+        for (int i = 0; i < 200; i++) {
+//            client.handshake();
+            client.handshakeOld();
+//            client.authenticate();
+//            client.authenticateOld();
+        }
 
         client.close();
     }
