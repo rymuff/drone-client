@@ -17,7 +17,6 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.security.spec.ECGenParameterSpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Calendar;
@@ -37,24 +36,6 @@ public class ConventionalCertificate {
         certGen.setSignatureAlgorithm("SHA512withECDSA");
         certGen.addExtension(X509Extensions.KeyUsage, true, new KeyUsage(KeyUsage.digitalSignature | KeyUsage.keyEncipherment));
         return certGen.generate(signatureKey, "BC");
-    }
-
-    public static void main(String[] args) throws CertificateException, NoSuchAlgorithmException, IOException, SignatureException, NoSuchProviderException, InvalidKeyException, InvalidAlgorithmParameterException, InvalidKeySpecException {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        String CURVE_NAME = "secp256r1";
-
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
-        keyPairGenerator.initialize(new ECGenParameterSpec(CURVE_NAME));
-        KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-        X509Certificate certificate = generateCertificate(new X500Principal("C=KR,CN=CLIENT"), keyPair.getPublic(), keyPair.getPrivate());
-
-        writeCertificate("covclient.dem", certificate);
-//        certificate = readCertificate("server.dem");
-
-        writeKey("covclient.key", keyPair.getPrivate().getEncoded());
-
-//        PrivateKey privateKey = readKey("server509.key");
     }
 
     public static PrivateKey readKey(String fileName) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException, NoSuchProviderException {
