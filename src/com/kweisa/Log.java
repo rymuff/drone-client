@@ -12,6 +12,14 @@ public class Log {
         System.out.println(tag + " [" + message.length + "] " + ": " + Hex.toHexString(message));
     }
 
+    public static void write(byte[] message) {
+        d("->", message);
+    }
+
+    public static void read(byte[] message) {
+        d("<-", message);
+    }
+
     public static void d(String tag, boolean message) {
         System.out.println(tag + ": " + message);
     }

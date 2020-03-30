@@ -60,69 +60,71 @@ public class Client {
         socket.close();
     }
 
+    public void write(byte[] message) throws IOException {
+        dataOutputStream.writeShort(message.length);
+        dataOutputStream.write(message);
+
+        Log.write(message);
+    }
+
+    public byte[] read() throws IOException {
+        short size = dataInputStream.readShort();
+        byte[] message = new byte[size];
+        dataInputStream.read(message);
+        Log.read(message);
+        return message;
+    }
+
+
     public void handshake() throws Exception {
-        // 1a. client hello
-        dataOutputStream.writeBoolean(true);
-        Log.d("Hello->", "true");
-
-        // 1b. server hello
-        boolean serverHello = dataInputStream.readBoolean();
-        Log.d("<-Hello", serverHello);
-
-        // 2a. choose nonce of drone nd
+        // 1a. choose nonce of drone nd
         byte[] nonceClient = new byte[4];
         secureRandom.nextBytes(nonceClient);
         Log.d("Nc", nonceClient);
 
-        // 2b. send nd
-        dataOutputStream.write(nonceClient);
-        Log.d("Nc->", nonceClient);
+        // 1b. send idd, nd, certd
+        write(clientCertificate.getSubject());
+        write(nonceClient);
+        write(clientCertificate.getEncoded());
 
-        // 3a. choose nonce of ground station ngs
-        // 3b. sign nd, ngs
-        // 3c. send nd, ngs, certgs and sign(nd, ngs) 184
-        byte[] nonce = new byte[8];
-        byte[] serverCertificateBytes = new byte[184];
-        byte[] sign = new byte[1024];
-        dataInputStream.read(nonce);
-        dataInputStream.read(serverCertificateBytes);
-        int length = dataInputStream.read(sign);
-        sign = Arrays.copyOf(sign, length);
-        Log.d("<-Nc+Ns", nonce);
-        Log.d("<-CERTs", serverCertificateBytes);
-        Log.d("<-SIGN", sign);
+        // 2a. choose nonce of ground station Ngs
+        // 2a. SIG(Nd, Ngs)
+        // 2b. send SIG(Nd, Ngs), CERTgs
+        byte[] nonce = read();
+        byte[] signatureNonce = read();
+        byte[] serverCertificateBytes = read();
 
-
-        // 4. check the validity of certgs
+        // 3. check the validity of CERTgs
         serverCertificate = new Certificate(serverCertificateBytes);
         boolean validity = certificateAuthority.verifyCertificate(serverCertificate);
         Log.d("CERTs", validity);
 
-        // 4. extract gs'spublickey of pkgs from cergs, check the validity of sign(nd, ngs)
+        // 3. get PKgs from CERTgs
+        // 3. check the validdity of SIG(Nd, Ngs)
         Signature signature = Signature.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
         signature.initVerify(serverCertificate.getPublicKey());
         signature.update(nonce);
-        validity = signature.verify(sign);
-        Log.d("SIGN", validity);
+        validity = signature.verify(signatureNonce);
+        Log.d("SIG(Nd, Ngs)", validity);
 
-        // 5. send certd
-        dataOutputStream.write(clientCertificate.getEncoded());
-        Log.d("CERTc->", clientCertificate.getEncoded());
+        // 4b. send e(pms), SIG(pms)
+        byte[] cipherText = read();
+        byte[] signaturePms = read();
 
-        // 6a. check the validity of certd, extract d's publickey of pkd from certd, encrypt e(pms) with pkd
-        // 6b. send e(pms)
-        byte[] cipherText = new byte[1024];
-        length = dataInputStream.read(cipherText);
-        cipherText = Arrays.copyOf(cipherText, length);
-        Log.d("<-E(PMS)", cipherText);
+        // 5. check the validity of SIG(E(PMS))
+        signature = Signature.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        signature.initVerify(serverCertificate.getPublicKey());
+        signature.update(cipherText);
+        validity = signature.verify(signaturePms);
+        Log.d("SIG(E(PMS))", validity);
 
-        // 7. decrypt e(pms)
+        // 5. DEC(E(PMS))
         Cipher cipher = Cipher.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
         cipher.init(Cipher.DECRYPT_MODE, clientCertificate.getPrivateKey());
         byte[] preMasterSecret = cipher.doFinal(cipherText);
         Log.d("PMS", preMasterSecret);
 
-        // 7. compute master secret
+        // 5. compute master secret
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
         secretKey = secretKeyFactory.generateSecret(new PBEKeySpec(new String(preMasterSecret).toCharArray(), nonce, 10000, 256));
         secretKey = new SecretKeySpec(secretKey.getEncoded(), "HmacSHA256");
@@ -133,28 +135,23 @@ public class Client {
         // 1. client hello
         byte[] clientHello = new byte[1];
         secureRandom.nextBytes(clientHello);
-        dataOutputStream.write(clientHello);
-        Log.d("Hello->", clientHello);
+        write(clientHello);
 
         // 2a. server hello
-        byte[] serverHello = new byte[1];
-        dataInputStream.read(serverHello);
-        Log.d("<-Hello", serverHello);
+        byte[] serverHello = read();
 
         // 2b. server hello
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
         X509Certificate serverCertificate = (X509Certificate) certificateFactory.generateCertificate(dataInputStream);
-        Log.d("<-CERTs", serverCertificate.getEncoded());
+        Log.d("<-", serverCertificate.getEncoded());
 
         // 3. cert request
-        byte[] request = new byte[1];
-        dataInputStream.read(request);
-        Log.d("<-REQUEST", request);
+        byte[] request = read();
 
         // 4. send certd
         X509Certificate clientCertificate = ConventionalCertificate.readCertificate("c_client.dem");
         dataOutputStream.write(clientCertificate.getEncoded());
-        Log.d("CERTc->", clientCertificate.getEncoded());
+        Log.d("->", clientCertificate.getEncoded());
 
         // 5. KEY INFO
         byte[] preMasterSecret = new byte[16];
@@ -164,7 +161,7 @@ public class Client {
         Cipher cipher = Cipher.getInstance("ECIES", BouncyCastleProvider.PROVIDER_NAME);
         cipher.init(Cipher.ENCRYPT_MODE, serverCertificate.getPublicKey());
         byte[] cipherText = cipher.doFinal(preMasterSecret);
-        dataOutputStream.write(cipherText);
+        write(cipherText);
         Log.d("E(PMS)->", cipherText);
 
         // 6. certificate verify
@@ -182,9 +179,7 @@ public class Client {
         signature.initSign(privateKey);
         signature.update(message);
         byte[] sig = signature.sign();
-        dataOutputStream.writeInt(sig.length);
-        dataOutputStream.write(sig);
-        Log.d("sig->", sig);
+        write(sig);
 
         // -. calculate symmetric key
         SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2withHmacSHA256");
@@ -197,14 +192,10 @@ public class Client {
         GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(16 * 8, preMasterSecret);
         cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmParameterSpec);
         byte[] finishedMessage = cipher.doFinal("Finished".getBytes());
-        dataOutputStream.write(finishedMessage);
-        Log.d("finishedMessage->", finishedMessage);
+        write(finishedMessage);
 
         // 8. finishedMessage
-        finishedMessage = new byte[1024];
-        int length = dataInputStream.read(finishedMessage);
-        finishedMessage = Arrays.copyOf(finishedMessage, length);
-        Log.d("<-finishedMessage", finishedMessage);
+        finishedMessage = read();
     }
 
     public void authenticate() throws Exception {
@@ -215,18 +206,8 @@ public class Client {
         mac.init(secretKey);
         byte[] hash = mac.doFinal(message);
 
-        dataOutputStream.write(message);
-        dataOutputStream.write(hash);
-        Log.d("message->", message);
-        Log.d("hash->", hash);
-
-        dataInputStream.read(message);
-        dataInputStream.read(hash);
-        Log.d("<-message", message);
-        Log.d("<-hash", hash);
-
-        byte[] bytes = mac.doFinal(message);
-        Log.d("Verified", Arrays.equals(hash, bytes));
+        write(hash);
+        write(message);
     }
 
     public void authenticateOld() throws Exception {
@@ -238,22 +219,8 @@ public class Client {
         signature.update(message);
         byte[] sign = signature.sign();
 
-        dataOutputStream.write(message);
-        dataOutputStream.write(sign);
-        Log.d("message->", message);
-        Log.d("sign->", sign);
-
-        sign = new byte[128];
-        dataInputStream.read(message);
-        int length = dataInputStream.read(sign);
-        sign = Arrays.copyOf(sign, length);
-        Log.d("<-message", message);
-        Log.d("<-sign", sign);
-
-        signature.initVerify(serverCertificate.getPublicKey());
-        signature.update(message);
-        boolean validity = signature.verify(sign);
-        Log.d("SIGN", validity);
+        write(sign);
+        write(message);
     }
 
     public static void main(String[] args) throws Exception {
@@ -269,8 +236,8 @@ public class Client {
 //        client.authenticateOld();
 
         for (int i = 0; i < 200; i++) {
-//            client.handshake();
-            client.handshakeOld();
+            client.handshake();
+//            client.handshakeOld();
 //            client.authenticate();
 //            client.authenticateOld();
         }
