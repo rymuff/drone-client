@@ -230,16 +230,17 @@ public class Client {
         client.load("client.cert", "client.key", "ca.keypair");
         client.connect();
 
-//        client.handshake();
+        client.handshake();
 //        client.handshakeOld();
 //            client.authenticate();
 //        client.authenticateOld();
 
         for (int i = 0; i < 200; i++) {
-            client.handshake();
+//            client.handshake();
 //            client.handshakeOld();
 //            client.authenticate();
-//            client.authenticateOld();
+            client.authenticateOld();
+            client.read();
         }
 
         client.close();
